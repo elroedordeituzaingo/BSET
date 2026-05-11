@@ -1,4 +1,4 @@
-# brawl elo tracker
+# brawl stars elo tracker
 
 <img width="1007" height="565" alt="mi pan su su su su su su" src="https://github.com/user-attachments/assets/91ad9201-ad6c-4ec0-a89c-0e416b945060" />
 
@@ -65,5 +65,5 @@ or maybe my coding is ass idk maybe the last one
     - Refresh browser when scene becomes active
 5- put it wherever you want
 
-enjoy i guess
-67th line
+
+69th line (nice)
