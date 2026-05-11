@@ -1,5 +1,7 @@
 # brawl elo tracker
 
+<img width="1007" height="565" alt="mi pan su su su su su su" src="https://github.com/user-attachments/assets/91ad9201-ad6c-4ec0-a89c-0e416b945060" />
+
 ## wat is this bradar:
 
 this tracks the brawl stars competitive ELO in a cool graph yayayayayayayay
