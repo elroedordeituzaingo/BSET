@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                width: 500px;
+                height: 280px;
+                overflow: hidden;
+                background: #000;
+                font-family: "Comic Sans MS", "Comic Sans", cursive;
+                color: #fff;
+            }
+
+            #widget {
+                width: 500px;
+                height: 280px;
+                border: 3px solid #fff;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                filter: url(#roughen);
+            }
+
+            #topbar {
+                height: 40px;
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+                padding: 0 6px;
+                gap: 6px;
+                border-bottom: 2px solid #fff;
+            }
+
+            #profile-icon {
+                width: 32px;
+                height: 32px;
+                border: 2px solid #fff;
+                flex-shrink: 0;
+                image-rendering: pixelated;
+                object-fit: cover;
+            }
+
+            #ign {
+                font-size: 11px;
+                flex: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                letter-spacing: 0.5px;
+            }
+
+            #rank-right {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                flex-shrink: 0;
+            }
+
+            #rank-icon {
+                width: 32px;
+                height: 32px;
+                image-rendering: pixelated;
+                object-fit: contain;
+            }
+
+            #rank-label {
+                font-size: 9px;
+                text-align: right;
+                line-height: 1.4;
+                white-space: nowrap;
+            }
+
+            #rank-name-text {
+                display: block;
+            }
+            #elo-text {
+                display: block;
+                opacity: 0.85;
+            }
+
+            #graph-area {
+                flex: 1;
+                position: relative;
+                display: flex;
+                align-items: stretch;
+            }
+
+            #yaxis {
+                width: 40px;
+                min-width: 40px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 4px 3px 4px 2px;
+                font-size: 7px;
+                text-align: right;
+                opacity: 0.75;
+                flex-shrink: 0;
+            }
+
+            #graph-canvas {
+                flex: 1;
+                display: block;
+            }
+
+            .divider {
+                height: 2px;
+                min-height: 2px;
+                background: #fff;
+            }
+
+            #bottombar {
+                height: 30px;
+                min-height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 8px;
+                border-top: 2px solid #fff;
+                font-size: 9px;
+            }
+
+            #wl-counter {
+                letter-spacing: 0.5px;
+            }
+            #session-delta {
+                letter-spacing: 0.5px;
+            }
+
+            #overlay {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 9px;
+                background: rgba(0, 0, 0, 0.75);
+                z-index: 10;
+                text-align: center;
+                padding: 10px;
+            }
+
+            #overlay.hidden {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- cool ass filter -->
+        <svg style="display: none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="roughen" x="-5%" y="-5%" width="110%" height="110%">
+                    <feTurbulence
+                        type="turbulence"
+                        baseFrequency="0.025"
+                        numOctaves="2"
+                        seed="3"
+                        result="noise"
+                    />
+                    <feDisplacementMap
+                        in="SourceGraphic"
+                        in2="noise"
+                        scale="1.5"
+                        xChannelSelector="R"
+                        yChannelSelector="G"
+                    />
+                </filter>
+            </defs>
+        </svg>
+
+        <div id="widget">
+            <div id="topbar">
+                <img
+                    id="profile-icon"
+                    src="assets/profile.png"
+                    onerror="this.style.visibility = 'hidden'"
+                />
+                <span id="ign">Loading...</span>
+                <div id="rank-right">
+                    <span id="rank-label">
+                        <span id="rank-name-text">—</span>
+                        <span id="elo-text">— ELO</span>
+                    </span>
+                    <img
+                        id="rank-icon"
+                        src="assets/bronze.png"
+                        onerror="this.style.visibility = 'hidden'"
+                    />
+                </div>
+            </div>
+
+            <div id="graph-area">
+                <div id="yaxis"></div>
+                <canvas id="graph-canvas"></canvas>
+            </div>
+
+            <div id="bottombar">
+                <span id="wl-counter">0W - 0L</span>
+                <span id="session-delta">+0 ELO</span>
+            </div>
+
+            <div id="overlay">Connecting...</div>
+        </div>
+
+        <script>
+            // the config thing
+            const SERVER = "http://localhost:6767";
+            const POLL_MS = 5000; // how long it takes to fetch info (DONT CHANGE THIS please uwu)
+
+            // rank colors (change ts to whatever you want, i think these ones are neat)
+            const RANK_COLORS = {
+                bronze: "#E05C2A",
+                silver: "#7AABCF",
+                gold: "#F0A500",
+                diamond: "#5BC8F5",
+                mythic: "#C44FD8",
+                legendary: "#E03A1E",
+                masters: "#D4AF37",
+                pro: "#3EBF3E",
+            };
+
+            // idk why i do ts in english, i am argentinian 😭
+            const RANK_NAMES = {
+                bronze: "Bronze",
+                silver: "Silver",
+                gold: "Gold",
+                diamond: "Diamond",
+                mythic: "Mythic",
+                legendary: "Legendary",
+                masters: "Masters",
+                pro: "Pro",
+            };
+
+            const elIgn = document.getElementById("ign");
+            const elRankName = document.getElementById("rank-name-text");
+            const elElo = document.getElementById("elo-text");
+            const elRankIcon = document.getElementById("rank-icon");
+            const elWL = document.getElementById("wl-counter");
+            const elDelta = document.getElementById("session-delta");
+            const elYaxis = document.getElementById("yaxis");
+            const elCanvas = document.getElementById("graph-canvas");
+            const elOverlay = document.getElementById("overlay");
+            const ctx = elCanvas.getContext("2d");
+
+            function resizeCanvas() {
+                elCanvas.width = elCanvas.offsetWidth;
+                elCanvas.height = elCanvas.offsetHeight;
+            }
+
+            function drawGraph(state) {
+                resizeCanvas();
+                const W = elCanvas.width;
+                const H = elCanvas.height;
+                ctx.clearRect(0, 0, W, H);
+
+                const startElo =
+                    state.history.length > 0
+                        ? state.history[0].elo - state.history[0].delta
+                        : (state.current_elo ?? 0);
+
+                const startRank =
+                    state.history.length > 0
+                        ? state.history[0].rank
+                        : state.current_rank || "bronze";
+
+                const allPoints = [
+                    { elo: startElo, rank: startRank },
+                    ...state.history.map((h) => ({ elo: h.elo, rank: h.rank })),
+                ];
+
+                if (allPoints.length === 0) return;
+
+                const elos = allPoints.map((p) => p.elo);
+                const minElo = Math.min(...elos);
+                const maxElo = Math.max(...elos);
+                const pad = Math.max(200, (maxElo - minElo) * 0.25) || 200;
+                const yMin = minElo - pad;
+                const yMax = maxElo + pad;
+                const yRange = yMax - yMin;
+
+                const toY = (elo) =>
+                    H - 10 - ((elo - yMin) / yRange) * (H - 20);
+
+                const maxPts = 8;
+                const xStep = W / (maxPts - 1);
+                const xOffset = W - xStep * (allPoints.length - 1);
+                const toX = (i) => xOffset + i * xStep;
+
+                const tickCount = 4;
+                const yLabels = [];
+                for (let i = 0; i <= tickCount; i++) {
+                    const val = Math.round(yMin + (yRange / tickCount) * i);
+                    const cy = toY(val);
+                    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(0, cy);
+                    ctx.lineTo(W, cy);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    yLabels.push({ label: String(val), y: cy });
+                }
+
+                elYaxis.innerHTML = "";
+                const sorted = [...yLabels].reverse();
+                sorted.forEach(({ label }) => {
+                    const span = document.createElement("span");
+                    span.textContent = label;
+                    elYaxis.appendChild(span);
+                });
+
+                allPoints.forEach((_, i) => {
+                    const x = toX(i);
+                    const y0 = H - 6;
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y0);
+                    ctx.lineTo(x, H - 1);
+                    ctx.stroke();
+                });
+
+                for (let i = 0; i < allPoints.length - 1; i++) {
+                    const p0 = allPoints[i];
+                    const p1 = allPoints[i + 1];
+                    const color = RANK_COLORS[p1.rank] || "#fff";
+                    const x0 = toX(i),
+                        y0 = toY(p0.elo);
+                    const x1 = toX(i + 1),
+                        y1 = toY(p1.elo);
+
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 3;
+                    ctx.lineJoin = "round";
+                    ctx.lineCap = "round";
+                    ctx.beginPath();
+                    ctx.moveTo(x0, y0);
+                    ctx.lineTo(x1, y1);
+                    ctx.stroke();
+                }
+
+                allPoints.forEach((pt, i) => {
+                    const x = toX(i);
+                    const y = toY(pt.elo);
+                    const color = RANK_COLORS[pt.rank] || "#fff";
+                    const size = 6;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+                    // White outline for contrast
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(x - size / 2, y - size / 2, size, size);
+                });
+            }
+
+            function updateUI(state) {
+                if (!state.initialized) {
+                    elOverlay.textContent = "Waiting for data...";
+                    elOverlay.classList.remove("hidden");
+                    return;
+                }
+
+                elOverlay.classList.add("hidden");
+
+                elIgn.textContent = state.ign || "—";
+
+                // thank you brawlify i want to suck your cock and balls until my throat explodes 😭
+                if (state.icon_id) {
+                    const profileIcon = document.getElementById("profile-icon");
+                    profileIcon.src =
+                        "https://cdn.brawlify.com/profile-icons/regular/" +
+                        state.icon_id +
+                        ".png";
+                    profileIcon.style.visibility = "visible";
+                }
+
+                const rankKey = state.current_rank || "bronze";
+                const tier = state.current_rank_tier;
+                let displayRank = RANK_NAMES[rankKey] || rankKey;
+                if (tier) displayRank += " " + tier;
+
+                elRankName.textContent = displayRank;
+                elElo.textContent = `${state.current_elo ?? "—"} ELO`;
+                elRankIcon.src = `assets/${rankKey}.png`;
+
+                elWL.textContent = `${state.wins}W - ${state.losses}L`;
+
+                const d = state.session_delta ?? 0;
+                elDelta.textContent = (d >= 0 ? "+" : "") + d + " ELO";
+                elDelta.style.color =
+                    d > 0 ? "#3EBF3E" : d < 0 ? "#E03A1E" : "#fff";
+
+                drawGraph(state);
+            }
+
+            function showError(msg) {
+                elOverlay.textContent = msg;
+                elOverlay.classList.remove("hidden");
+            }
+
+            async function poll() {
+                try {
+                    const res = await fetch(`${SERVER}/state`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const state = await res.json();
+
+                    if (state.error) {
+                        showError(`Error: ${state.error}`);
+                    } else {
+                        updateUI(state);
+                    }
+                } catch (e) {
+                    showError(`Cannot connect to server\n(${e.message})`);
+                }
+            }
+
+            window.addEventListener("load", () => {
+                resizeCanvas();
+                poll();
+                setInterval(poll, POLL_MS);
+            });
+
+            window.addEventListener("resize", () => {
+                resizeCanvas();
+            });
+        </script>
+    </body>
+</html>
