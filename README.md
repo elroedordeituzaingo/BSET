@@ -1,11 +1,12 @@
 ## brawl elo tracker
 
-wat is this bradar:
+# wat is this bradar:
+
 this tracks the brawl stars competitive ELO in a cool graph yayayayayayayay
 
 ## how to install:
 
-1: get the api key
+# 1: get the api key
 
 1- enter https://developer.brawlstars.com
 2- register
@@ -16,23 +17,28 @@ this tracks the brawl stars competitive ELO in a cool graph yayayayayayayay
 
 btw if u have a dynamic ip (ip changes) uhh js do ts step again lmao (exept the registring)
 
-2: configure the .env
+# 2: the .env
 
-change the name of .env.example to .env
+create a file and name it ".env"
+
+copy and paste the next thing:
+
+BRAWL_API_KEY=
+PLAYER_TAG=#
 
 add ur stuff on: 
 
 BRAWL_API_KEY= the token from the previous step
 PLAYER_TAG=# ur tag
 
-3: install dependencies
+# 3: install dependencies
 
 u lowk need python for this, so js download python and after, paste this on the cmd from the folder:
 pip install -r requirements.txt
 
 it will install everything u need
 
-4: run the server
+# 4: run the server
 
 do the following command on the console
 python server.py
@@ -47,7 +53,7 @@ HTTP 403: you put the IP wrong when setting up the key
 HTTP 404: wrong player tag
 or maybe my coding is ass idk maybe the last one
 
-how to add to OBS:
+# how to add to OBS:
 
 1- in OBS, add a browser source
 2- add as an URL either "http://localhost:6767" (lol) or the html file
@@ -58,3 +64,4 @@ how to add to OBS:
 5- put it wherever you want
 
 enjoy i guess
+67th line
