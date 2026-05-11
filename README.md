@@ -1,6 +1,9 @@
-brawl elo tracker
+## brawl elo tracker
 
-how to install:
+wat is this bradar:
+this tracks the brawl stars competitive ELO in a cool graph yayayayayayayay
+
+## how to install:
 
 1: get the api key
 
@@ -37,7 +40,7 @@ and open the html
 everything should work ig
 
 
-what if ts doesnt work??
+## what if ts doesnt work??
 
 if it doesnt work, Brawl stars changed the API or:
 HTTP 403: you put the IP wrong when setting up the key
